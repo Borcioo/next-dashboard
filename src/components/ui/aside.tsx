@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, forwardRef } from "react";
-import { cva } from "class-variance-authority";
 import Cookies from "js-cookie";
+import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 export const Persistence = {
@@ -93,17 +93,24 @@ export function toggleSidebar({ forAside }: { forAside?: string } = {}): void {
   );
 }
 
-const asideClasses = cva(["overflow-hidden", "transition-all duration-300"], {
-  variants: {
-    open: {
-      true: "w-64",
-      false: "w-0",
+const asideClasses = cva(
+  [
+    "overflow-hidden",
+    "transition-all duration-300",
+    "flex flex-col border-r border-gray-700 bg-gray-800 text-white",
+  ],
+  {
+    variants: {
+      open: {
+        true: "w-64",
+        false: "w-0",
+      },
     },
-  },
-  defaultVariants: {
-    open: false,
-  },
-});
+    defaultVariants: {
+      open: false,
+    },
+  }
+);
 
 type PersistenceMethod = keyof typeof Persistence;
 
