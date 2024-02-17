@@ -34,10 +34,15 @@ function saveStateToStorage(
   }
 }
 
+interface ForAsideDetail {
+  aside?: string;
+}
+
 export function useSidebarState(
   initialState: boolean,
   persistenceOptions: PersistenceOptions,
-  onOpen?: () => void
+  onOpen?: () => void,
+  name?: string
 ): [boolean, (state: boolean) => void] {
   const [isOpen, setIsOpen] = useState(initialState);
 
@@ -53,16 +58,21 @@ export function useSidebarState(
       }
     };
 
-    window.addEventListener(
-      "sidebarToggle",
-      handleStateChange as EventListener
-    );
+    window.addEventListener("forAside", (event) => {
+      const detail = (event as CustomEvent<ForAsideDetail>).detail;
+      if (detail.aside === name) {
+        handleStateChange(event as CustomEvent<boolean>);
+      }
+    });
+
     return () =>
-      window.removeEventListener(
-        "sidebarToggle",
-        handleStateChange as EventListener
-      );
-  }, [persistenceOptions, isOpen, onOpen]);
+      window.removeEventListener("forAside", (event) => {
+        const detail = (event as CustomEvent<ForAsideDetail>).detail;
+        if (detail.aside === name) {
+          handleStateChange(event as CustomEvent<boolean>);
+        }
+      });
+  }, [persistenceOptions, isOpen, onOpen, name]);
 
   return [
     isOpen,
@@ -73,8 +83,14 @@ export function useSidebarState(
   ];
 }
 
-export function toggleSidebar(): void {
-  window.dispatchEvent(new CustomEvent("sidebarToggle"));
+export function toggleSidebar({ forAside }: { forAside?: string } = {}): void {
+  window.dispatchEvent(
+    new CustomEvent("forAside", {
+      detail: {
+        aside: forAside,
+      },
+    })
+  );
 }
 
 const asideClasses = cva(["overflow-hidden", "transition-all duration-300"], {
@@ -94,6 +110,7 @@ type PersistenceMethod = keyof typeof Persistence;
 type AsidePropsBase = {
   children: React.ReactNode;
   onOpen?: () => void;
+  name?: string;
 };
 
 type AsidePropsWithPersistence = AsidePropsBase & {
@@ -115,9 +132,10 @@ const Aside: React.FC<AsideProps> = ({
   children,
   persistence = { method: "None", key: "" },
   initialOpen = true,
+  name,
   onOpen,
 }) => {
-  const [isOpen] = useSidebarState(initialOpen, persistence, onOpen);
+  const [isOpen] = useSidebarState(initialOpen, persistence, onOpen, name);
 
   return <aside className={asideClasses({ open: isOpen })}>{children}</aside>;
 };
@@ -125,13 +143,15 @@ Aside.displayName = "Aside";
 
 const AsideTrigger = forwardRef<
   HTMLButtonElement,
-  React.ButtonHTMLAttributes<HTMLButtonElement> & {}
->(({ children, className, ...props }, ref) => {
+  React.ButtonHTMLAttributes<HTMLButtonElement> & {
+    forAside: string;
+  }
+>(({ forAside, children, className, ...props }, ref) => {
   return (
     <button
       {...props}
       ref={ref}
-      onClick={() => toggleSidebar()}
+      onClick={() => toggleSidebar({ forAside })}
       className={cn(
         "px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-700 cursor-pointer",
         className
